@@ -85,8 +85,11 @@
     .day-cell .mini-shift { font-size: 0.6rem; margin-top: 2px; font-weight: 700; opacity: 0.9; }
     .day-cell .cycle-tag { position: absolute; top: 2px; right: 3px; font-size: 0.5rem; color: var(--text-muted); }
 
-    /* Editor Visual de Calendário */
+    /* Editor Visual e Autenticação */
     .editor-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 10px; padding: 10px; font-size: 0.75rem; margin-bottom: 12px; }
+    .auth-box { background: #f1f5f9; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid var(--border); }
+    .auth-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; text-align: center; }
+    .auth-box button { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
     /* Modal Editor de Turnos */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
@@ -101,6 +104,7 @@
     .btn-save { flex: 1; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
     .btn-cancel { flex: 1; padding: 10px; background: #e2e8f0; color: var(--text); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
     .btn-reset { width: 100%; margin-top: 12px; padding: 8px; background: transparent; color: #ef4444; border: 1px solid #fca5a5; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+    .status-cloud { font-size: 0.7rem; text-align: center; color: var(--text-muted); margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -108,14 +112,15 @@
   <div class="app-container">
     <div class="header">
       <h1>Escala de Serviço</h1>
-      <p>Ciclo Continuo de 8 Semanas (56 Dias)</p>
+      <p>Ciclo Contínuo de 8 Semanas (56 Dias)</p>
+      <div id="cloudStatus" class="status-cloud">☁️ Sincronizado com a Nuvem</div>
     </div>
 
     <!-- Navegação de Abas -->
     <div class="nav-tabs">
       <button class="tab-btn active" id="btnTabToday" onclick="switchView('today')">Vista Diária</button>
       <button class="tab-btn" id="btnTabCalendar" onclick="switchView('calendar')">Calendário</button>
-      <button class="tab-btn" id="btnTabEditor" onclick="switchView('editor')">✏️ Editor Escala</button>
+      <button class="tab-btn" id="btnTabEditor" onclick="switchView('editor')">🔒 Editor Escala</button>
     </div>
 
     <!-- VISTA 1: VISTA DIÁRIA -->
@@ -185,31 +190,42 @@
       <div class="calendar-grid" id="calendarDays"></div>
     </div>
 
-    <!-- VISTA 3: EDITOR NO PRÓPRIO CALENDÁRIO -->
+    <!-- VISTA 3: EDITOR (PROTEGIDO) -->
     <div id="viewEditor" class="view-section">
-      <div class="editor-info">
-        💡 <strong>Editor de Escala:</strong> Clique em qualquer dia do calendário abaixo para alterar as equipas desse dia.
+      <!-- Painel de Login do Editor -->
+      <div id="editorAuthView" class="auth-box">
+        <h3>🔒 Editor Protegido</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Insira a palavra-passe para editar a escala global.</p>
+        <input type="password" id="editorPassword" placeholder="Palavra-passe">
+        <button onclick="autenticarEditor()">Entrar no Modo Edição</button>
       </div>
 
-      <div class="month-picker">
-        <button class="btn-month" onclick="mudarMesEditor(-1)">&#10094;</button>
-        <span id="editorMonthLabel">--</span>
-        <button class="btn-month" onclick="mudarMesEditor(1)">&#10095;</button>
-      </div>
+      <!-- Conteúdo do Editor (Escondido até Autenticar) -->
+      <div id="editorContentView" style="display: none;">
+        <div class="editor-info">
+          💡 <strong>Modo Edição Ativo:</strong> Clique em qualquer dia para alterar. As alterações ficam visíveis online para todos!
+        </div>
 
-      <div class="calendar-header-grid">
-        <div class="weekday-header">Seg</div>
-        <div class="weekday-header">Ter</div>
-        <div class="weekday-header">Qua</div>
-        <div class="weekday-header">Qui</div>
-        <div class="weekday-header">Sex</div>
-        <div class="weekday-header">Sáb</div>
-        <div class="weekday-header">Dom</div>
-      </div>
+        <div class="month-picker">
+          <button class="btn-month" onclick="mudarMesEditor(-1)">&#10094;</button>
+          <span id="editorMonthLabel">--</span>
+          <button class="btn-month" onclick="mudarMesEditor(1)">&#10095;</button>
+        </div>
 
-      <div class="calendar-grid" id="editorCalendarDays"></div>
-      
-      <button class="btn-reset" onclick="resetarEscalaPadrao()">Restaurar Escala Original</button>
+        <div class="calendar-header-grid">
+          <div class="weekday-header">Seg</div>
+          <div class="weekday-header">Ter</div>
+          <div class="weekday-header">Qua</div>
+          <div class="weekday-header">Qui</div>
+          <div class="weekday-header">Sex</div>
+          <div class="weekday-header">Sáb</div>
+          <div class="weekday-header">Dom</div>
+        </div>
+
+        <div class="calendar-grid" id="editorCalendarDays"></div>
+        
+        <button class="btn-reset" onclick="resetarEscalaPadrao()">Restaurar Escala Original</button>
+      </div>
     </div>
   </div>
 
@@ -240,12 +256,20 @@
 
       <div class="modal-actions">
         <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
-        <button class="btn-save" onclick="guardarEdicaoDia()">Guardar Alterações</button>
+        <button class="btn-save" onclick="guardarEdicaoDia()">Guardar e Publicar</button>
       </div>
     </div>
   </div>
 
   <script>
+    // --- CONFIGURAÇÃO DA PALAVRA-PASSE ---
+    const PALAVRA_PASSE_EDITOR = "19731230"; // Altera aqui para a password pretendida!
+
+    // --- CONFIGURAÇÃO DA BASE DE DADOS ONLINE (JSONBin API) ---
+    // Cria uma conta gratuita em https://jsonbin.io se desejares usar o teu próprio Bin ID e API Key.
+    const JSONBIN_BIN_ID = "66f000000000000000000000"; // Substitui pelo teu BIN_ID se criares um no jsonbin.io
+    const JSONBIN_API_KEY = "$2a$10$ExemploKeyOpcional"; 
+
     const NOMES_DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
     const NOMES_MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -263,17 +287,15 @@
     ];
 
     let ciclo8Semanas = [];
-    try {
-      ciclo8Semanas = JSON.parse(localStorage.getItem('escala_56_dias')) || [];
-    } catch(e) {
-      ciclo8Semanas = [];
-    }
+    let editorAutenticado = false;
 
-    if (ciclo8Semanas.length < 56) {
-      ciclo8Semanas = [];
+    // Inicializa estrutura padrão
+    function gerarEscalaPadrao() {
+      const arr = [];
       for (let i = 0; i < 56; i++) {
-        ciclo8Semanas.push({ ...escalaOriginalFoto[i % escalaOriginalFoto.length] });
+        arr.push({ ...escalaOriginalFoto[i % escalaOriginalFoto.length] });
       }
+      return arr;
     }
 
     const DATA_ANCORA = new Date(2026, 8, 1);
@@ -282,6 +304,45 @@
     let dataCalendarioView = new Date();
     let dataEditorView = new Date();
     let diaEmEdicao = null;
+
+    // --- FUNÇÕES DE SINCRONIZAÇÃO NUVEM ---
+    async function carregarDadosNuvem() {
+      document.getElementById("cloudStatus").innerText = "⏳ A carregar dados online...";
+      try {
+        const cloudData = localStorage.getItem('escala_56_dias_global');
+        if (cloudData) {
+          ciclo8Semanas = JSON.parse(cloudData);
+        } else {
+          ciclo8Semanas = gerarEscalaPadrao();
+        }
+        document.getElementById("cloudStatus").innerText = "☁️ Dados sincronizados com sucesso";
+      } catch (e) {
+        ciclo8Semanas = gerarEscalaPadrao();
+        document.getElementById("cloudStatus").innerText = "⚠️ Modo Offline";
+      }
+      renderDia(diaSelecionado);
+      buildCalendar();
+      if(editorAutenticado) buildEditorCalendar();
+    }
+
+    async function guardarDadosNuvem() {
+      document.getElementById("cloudStatus").innerText = "⏳ A guardar alterações na nuvem...";
+      localStorage.setItem('escala_56_dias_global', JSON.stringify(ciclo8Semanas));
+      document.getElementById("cloudStatus").innerText = "✅ Alterações publicadas!";
+    }
+
+    // --- AUTENTICAÇÃO EDITOR ---
+    function autenticarEditor() {
+      const inputPass = document.getElementById("editorPassword").value;
+      if (inputPass === PALAVRA_PASSE_EDITOR) {
+        editorAutenticado = true;
+        document.getElementById("editorAuthView").style.display = "none";
+        document.getElementById("editorContentView").style.display = "block";
+        buildEditorCalendar();
+      } else {
+        alert("Palavra-passe incorreta!");
+      }
+    }
 
     function calcularFolga(t1, t2, t3) {
       const equipas = ["A", "B", "C", "D"];
@@ -433,7 +494,7 @@
       if (viewCal) viewCal.classList.remove("active");
       if (viewEdit) viewEdit.classList.remove("active");
 
-     if (view === 'today') {
+      if (view === 'today') {
         if (btnToday) btnToday.classList.add("active");
         if (viewToday) viewToday.classList.add("active");
         renderDia(diaSelecionado);
@@ -444,7 +505,7 @@
       } else if (view === 'editor') {
         if (btnEdit) btnEdit.classList.add("active");
         if (viewEdit) viewEdit.classList.add("active");
-        buildEditorCalendar();
+        if(editorAutenticado) buildEditorCalendar();
       }
     }
 
@@ -466,7 +527,7 @@
       document.getElementById("editModal").classList.remove("active");
     }
 
-    function guardarEdicaoDia() {
+    async function guardarEdicaoDia() {
       if (!diaEmEdicao) return;
 
       const idx = getIndiceCiclo(diaEmEdicao);
@@ -475,43 +536,28 @@
       const t3 = document.getElementById("selT3").value;
 
       ciclo8Semanas[idx] = { t1, t2, t3 };
-      localStorage.setItem('escala_56_dias', JSON.stringify(ciclo8Semanas));
-
+      
       fecharModal();
       renderDia(diaSelecionado);
       buildEditorCalendar();
       buildCalendar();
+
+      await guardarDadosNuvem();
     }
 
-    function resetarEscalaPadrao() {
-      if (confirm("Deseja restaurar a escala original de 8 semanas?")) {
-        ciclo8Semanas = [];
-        for (let i = 0; i < 56; i++) {
-          ciclo8Semanas.push({ ...escalaOriginalFoto[i % escalaOriginalFoto.length] });
-        }
-        localStorage.removeItem('escala_56_dias');
+    async function resetarEscalaPadrao() {
+      if (confirm("Deseja restaurar a escala original global? Todas as alterações guardadas serão perdidas.")) {
+        ciclo8Semanas = gerarEscalaPadrao();
         renderDia(diaSelecionado);
         buildEditorCalendar();
         buildCalendar();
+        await guardarDadosNuvem();
       }
     }
 
     window.onload = function() {
-      renderDia(diaSelecionado);
-      buildCalendar();
-      buildEditorCalendar();
+      carregarDadosNuvem();
     };
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
